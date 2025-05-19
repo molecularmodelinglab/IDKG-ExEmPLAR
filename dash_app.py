@@ -56,12 +56,13 @@ colors = {
 kg_dropdown = dcc.Dropdown(
                     id="kg-dropdown",
                     options=[
+                    {'label':"IDKG", 'value':"IDKG"},
                     {'label':"ROBOKOP", 'value':"ROBOKOP"},
                     {'label':"YOBOKOP", 'value':"YOBOKOP"},
                     {'label':"SCENT-KOP", 'value':"SCENT-KOP"},
                     {'label':"HetioNet", 'value':"HetioNet"},
                     {'label':"ComptoxAI", 'value':"ComptoxAI"}],
-                    value="ROBOKOP",
+                    value="IDKG",
                     className='dropdownbox',
                     clearable=False)
 
@@ -738,6 +739,12 @@ def UpdateNodeAndEdgeLabels(graph_db,last_callback_data):
         intermediate = "biolink:Gene"
         ender = "biolink:DiseaseOrPhenotypicFeature"
         link = "http://robokopkg.renci.org/browser/"
+    elif graph_db == "IDKG":
+        starter = "biolink:ChemicalEntity"
+        intermediate = "biolink:GeneOrGeneProduct"
+        ender = "biolink:DiseaseOrPhenotypicFeature"
+        #link = "bolt://localhost:7687"
+        link = "neo4j+s://48cfab8c.databases.neo4j.io"
     elif graph_db == "YOBOKOP":
         starter = "biolink:ChemicalEntity"
         ender = "biolink:DiseaseOrPhenotypicFeature"
@@ -1068,7 +1075,7 @@ def submit_path_search(submit_clicks,clipboard_clicks,graph_db,start_node_text,e
             if edges_bool == True:
                 k_edges = [f"{all_k_edges[pattern][0]}",f"{all_k_edges[pattern][1]}",f"{all_k_edges[pattern][2]}",f"{all_k_edges[pattern][3]}",f"{all_k_edges[pattern][4]}",f"{t_edges}"]
                 wildcarded_k_edges = ['wildcard' if x == "None" else x for x in k_edges]
-                clean_k_edges = ['`'+x+'`' if 'biolink' in x else x for x in wildcarded_k_edges]
+                clean_k_edges = ['`'+x+'`' if ':' in x else x for x in wildcarded_k_edges]
             else:
                 clean_k_edges = ['wildcard', 'wildcard', 'wildcard', 'wildcard', 'wildcard', 'wildcard']
             searched_edges={pattern:clean_k_edges[:k_values[i]]+[clean_k_edges[-1]]}
@@ -1099,7 +1106,8 @@ def submit_path_search(submit_clicks,clipboard_clicks,graph_db,start_node_text,e
         print("Running PATH SEARCH!")
         try:
             answersdf = Graphsearch(graph_db,start_nodes,end_nodes,searched_nodes_dict,searched_options_dict,searched_edges_dict,metadata_bool,timeout_ms=120000,limit_results=10000)
-        except:
+        except Exception as e:
+            print(e)
             return [[f"Either no answers were found or query execution time exceeded timeout limit (> 2 minutes). Please revise query patterns and try again."],
                 dash.no_update,
                 dash.no_update,
@@ -1672,7 +1680,7 @@ def test_path_search(
     if edges_bool == True:
         k_edges = [f"{all_k_edges[0]}",f"{all_k_edges[1]}",f"{all_k_edges[2]}",f"{all_k_edges[3]}",f"{all_k_edges[4]}",f"{t_edges}"]
         wildcarded_k_edges = ['wildcard' if x == "None" else x for x in k_edges]
-        clean_k_edges = ['`'+x+'`' if 'biolink' in x else x for x in wildcarded_k_edges]
+        clean_k_edges = ['`'+x+'`' if ':' in x else x for x in wildcarded_k_edges]
     else:
         clean_k_edges = ['wildcard', 'wildcard', 'wildcard', 'wildcard', 'wildcard', 'wildcard']
     searched_edges={"pattern-1":clean_k_edges[:k_values]+[clean_k_edges[-1]]}
@@ -1704,6 +1712,8 @@ def test_path_search(
 
 if __name__ == '__main__':
 
-    app.run_server() #For local development
+    app.run() #For local development
     #app.run_server(host='0.0.0.0', port=80,debug=False) #For production
+
+
 
