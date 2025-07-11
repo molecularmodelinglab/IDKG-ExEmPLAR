@@ -3,6 +3,10 @@ import pandas as pd
 import py2neo
 import neo4j
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 #from neo4j import unit_of_work
 from matplotlib.pyplot import cm
 #import re
@@ -66,6 +70,7 @@ def run_query(tx,q):
 KGNameIDProps = {
             "ROBOKOP":["name","id","equivalent_identifiers","predicate"],
             "IDKG":["name","id","equivalent_identifiers","predicate"],
+            "DNT":["name","id","equivalent_identifiers","predicate"],
             "YOBOKOP":["name","id","equivalent_identifiers","predicate"],
             "SCENT-KOP":["name","id","id","predicate"],
             "HetioNet":["name","identifier","identifier","predicate"],
@@ -106,8 +111,9 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
     if graph_db == "ROBOKOP":
         link = "neo4j://robokopkg.renci.org"
     elif graph_db == "IDKG":
-        #link = "bolt://localhost:7687"
-        link = "neo4j+s://48cfab8c.databases.neo4j.io"
+        link = f"bolt://{os.getenv('IDKG_HOST')}:7687"
+    elif graph_db == "DNT":
+        link = f"bolt://{os.getenv('DNT_HOST')}:7687"
     elif graph_db == "YOBOKOP":
         link = "neo4j://yobokop-neo4j.apps.renci.org"
     elif graph_db == "HetioNet":
@@ -120,7 +126,9 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
         if graph_db == "YOBOKOP":
             G = neo4j.GraphDatabase.driver(link, auth=("neo4j", "ncatgamma"))
         elif graph_db == "IDKG":
-            G = neo4j.GraphDatabase.driver(link, auth=("neo4j", "b3dyFgWmN-I9l2VS-2vAT6FAUcxd3tgOxJbE8B2rYpI"))
+            G = neo4j.GraphDatabase.driver(link, auth=(os.getenv("IDKG_USER"), os.getenv("IDKG_PASSWORD")))
+        elif graph_db == "DNT":
+            G = neo4j.GraphDatabase.driver(link, auth=(os.getenv("DNT_USER"), os.getenv("DNT_PASSWORD")))
         else:
             G = neo4j.GraphDatabase.driver(link)
     except:
@@ -171,11 +179,11 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
                 robokop_output.update({f"node{i}: {nodes[p][i]}":[]})
                 if get_metadata == True:
                     robokop_output.update({f"n{i}:MetaData":[]})
-                if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+                if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                     robokop_output.update({f"esnd_n{i}_r{i}":[]})
                 robokop_output.update({f"edge{i}":[]})
                 if get_metadata == True:
-                    if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP']:
+                    if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP']:
                         robokop_output.update({f"e{i}:MetaData":[]})
                 if str(edges[p][i].replace("`","")) in qualified_predicates:
                     query = query + f"(n{i}{':'+nodes[p][i] if 'wildcard' not in nodes[p][i] else ''})-[r{i}{':'+'`biolink:affects`'}]-"
@@ -187,12 +195,12 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
                 robokop_output.update({f"node{i}: {nodes[p][i]}":[]})
                 if get_metadata == True:
                     robokop_output.update({f"n{i}:MetaData":[]})
-                if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+                if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                     robokop_output.update({f"esnd_n{i}_r{i-1}":[]})
                     robokop_output.update({f"esnd_n{i}_r{i}":[]})
                 robokop_output.update({f"edge{i}":[]})
                 if get_metadata == True:
-                    if graph_db in ["ROBOKOP","IDKG"]:
+                    if graph_db in ["ROBOKOP","IDKG","DNT"]:
                         robokop_output.update({f"e{i}:MetaData":[]})
                 if edges[p][i].replace("`","") in qualified_predicates:
                     query = query + f"(n{i}{':'+nodes[p][i] if 'wildcard' not in nodes[p][i] else ''})-[r{i}{':'+'`biolink:affects`'}]-"
@@ -224,7 +232,7 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
                 robokop_output.update({f"node{i}: {nodes[p][i]}":[]})
                 if get_metadata == True:
                     robokop_output.update({f"n{i:}MetaData":[]})
-                if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+                if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                     robokop_output.update({f"esnd_n{i}_r{i-1}":[]})
                 query = query + f"(n{i}{':'+nodes[p][i] if 'wildcard' not in nodes[p][i] else ''}) "
         
@@ -320,25 +328,25 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
         #             que = que + f"{'WHERE' if len(where_options)<=6 else ''} n{0}.{KGNameIDProps[graph_db][0]} {'CONTAINS' if contains_starts==True else '='} \"{start}\" AND (n{k-1}.{KGNameIDProps[graph_db][0]}) {'CONTAINS' if contains_ends==True else '='} \"{end}\" "
         #         q = que
                 
-        if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+        if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
             for i in range(k):
                 firstbracket = "{"
                 secondbracket = "}"
                 firstmark = f"'`'+"
                 secondmark = f"+'`'"
                 if i==0:
-                    q = q + f"CALL{firstbracket}WITH n{i}, r{i} MATCH(n{i})-[r{i}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}TYPE(r{i}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i}{secondbracket} "
+                    q = q + f"CALL{firstbracket}WITH n{i}, r{i} MATCH(n{i})-[r{i}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}TYPE(r{i}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i}{secondbracket} "
                 elif i>0 and i<(k-1):
-                    q = q + f"CALL{firstbracket}WITH n{i}, r{i-1} MATCH(n{i})-[r{i-1}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}TYPE(r{i-1}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i-1}{secondbracket} CALL{firstbracket}WITH n{i}, r{i} MATCH(n{i})-[r{i}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}TYPE(r{i}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i}{secondbracket} "
+                    q = q + f"CALL{firstbracket}WITH n{i}, r{i-1} MATCH(n{i})-[r{i-1}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}TYPE(r{i-1}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i-1}{secondbracket} CALL{firstbracket}WITH n{i}, r{i} MATCH(n{i})-[r{i}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}TYPE(r{i}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i}{secondbracket} "
                 else:
-                    q = q + f"CALL{firstbracket}WITH n{i}, r{i-1} MATCH(n{i})-[r{i-1}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}TYPE(r{i-1}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i-1}{secondbracket} RETURN "
+                    q = q + f"CALL{firstbracket}WITH n{i}, r{i-1} MATCH(n{i})-[r{i-1}]-(t) RETURN apoc.node.degree(n{i}, {firstmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}TYPE(r{i-1}){secondmark if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}) AS esnd_n{i}_r{i-1}{secondbracket} RETURN "
             
             if get_metadata == True:
                 for z in range(k):
                     if z==0:
-                        q = q + f"properties(n{z}) as n{z}, esnd_n{z}_r{z}, TYPE(r{z}) as r{z}_type, {'properties(r'+str(z)+') as r'+str(z) if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}, "
+                        q = q + f"properties(n{z}) as n{z}, esnd_n{z}_r{z}, TYPE(r{z}) as r{z}_type, {'properties(r'+str(z)+') as r'+str(z) if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}, "
                     elif z>0 and z<(k-1):
-                        q = q + f"properties(n{z}) as n{z}, esnd_n{z}_r{z-1}, esnd_n{z}_r{z}, TYPE(r{z}) as r{z}_type, {'properties(r'+str(z)+') as r'+str(z) if graph_db in ['ROBOKOP', 'IDKG', 'YOBOKOP'] else ''}, "
+                        q = q + f"properties(n{z}) as n{z}, esnd_n{z}_r{z-1}, esnd_n{z}_r{z}, TYPE(r{z}) as r{z}_type, {'properties(r'+str(z)+') as r'+str(z) if graph_db in ['ROBOKOP', 'IDKG', 'DNT', 'YOBOKOP'] else ''}, "
                     else: 
                         q = q + f"properties(n{z}) as n{z}, esnd_n{z}_r{z-1} LIMIT {limit}"
             else:
@@ -362,16 +370,16 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
         print(q+"\n")
         
         if get_metadata == True:
-            if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+            if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                 q = f"CALL apoc.cypher.runTimeboxed(\"{q}\",null,{timeout_ms}) YIELD value RETURN "
                 for z in range(k):
                     if z==0:
-                        if graph_db in ["ROBOKOP", "IDKG", "YOBOKOP"]:
+                        if graph_db in ["ROBOKOP", "IDKG", "DNT", "YOBOKOP"]:
                             q = q + f"value.n{z}.{KGNameIDProps[graph_db][0]}, value.n{z}, value.esnd_n{z}_r{z}, value.r{z}_type, apoc.text.join([value.r{z}.qualified_predicate,value.r{z}.object_direction,value.r{z}.object_aspect],' '), value.r{z}, "
                         else:
                             q = q + f"value.n{z}.{KGNameIDProps[graph_db][0]}, value.n{z}, value.esnd_n{z}_r{z}, value.r{z}_type, "
                     elif z>0 and z<(k-1):
-                        if graph_db in ["ROBOKOP", "IDKG", "YOBOKOP"]:
+                        if graph_db in ["ROBOKOP", "IDKG", "DNT", "YOBOKOP"]:
                             q = q + f"value.n{z}.{KGNameIDProps[graph_db][0]}, value.n{z}, value.esnd_n{z}_r{z-1}, value.esnd_n{z}_r{z}, value.r{z}_type, apoc.text.join([value.r{z}.qualified_predicate,value.r{z}.object_direction,value.r{z}.object_aspect],' '), value.r{z}, "
                         else:
                             q = q + f"value.n{z}.{KGNameIDProps[graph_db][0]}, value.n{z}, value.esnd_n{z}_r{z-1}, value.esnd_n{z}_r{z}, value.r{z}_type, "
@@ -380,7 +388,7 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
             print(q+"\n")
 
         else:
-            if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+            if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                 q = f"CALL apoc.cypher.runTimeboxed(\"{q}\",null,{timeout_ms}) YIELD value RETURN "
                 for z in range(k):
                     if z==0:
@@ -554,8 +562,9 @@ def TestQuery(graph_db,start_nodes,end_nodes,nodes,options,edges,start_end_match
     if graph_db == "ROBOKOP":
         link = "neo4j://robokopkg.renci.org"
     elif graph_db == "IDKG":
-        #link = "bolt://localhost:7687"
-        link = "neo4j+s://48cfab8c.databases.neo4j.io"
+        link = f"bolt://{os.getenv('IDKG_HOST')}:7687"
+    elif graph_db == "DNT":
+        link = f"bolt://{os.getenv('DNT_HOST')}:7687"
     elif graph_db == "YOBOKOP":
         link = "neo4j://yobokop-neo4j.apps.renci.org"
     elif graph_db == "HetioNet":
@@ -568,7 +577,9 @@ def TestQuery(graph_db,start_nodes,end_nodes,nodes,options,edges,start_end_match
         if graph_db == "YOBOKOP":
             G = neo4j.GraphDatabase.driver(link, auth=("neo4j", "ncatgamma"))
         elif graph_db == "IDKG":
-            G = neo4j.GraphDatabase.driver(link, auth=("neo4j", "b3dyFgWmN-I9l2VS-2vAT6FAUcxd3tgOxJbE8B2rYpI"))
+            G = neo4j.GraphDatabase.driver(link, auth=(os.getenv("IDKG_USER"), os.getenv("IDKG_PASSWORD")))
+        elif graph_db == "DNT":
+            G = neo4j.GraphDatabase.driver(link, auth=(os.getenv("DNT_USER"), os.getenv("DNT_PASSWORD")))
         else:
             G = neo4j.GraphDatabase.driver(link)
     except:
@@ -697,7 +708,7 @@ def TestQuery(graph_db,start_nodes,end_nodes,nodes,options,edges,start_end_match
         p_num += 1
 
     neo4j_query = neo4j_query + test_where_options + f"RETURN n0_0.{KGNameIDProps[graph_db][0]} as n0_0 LIMIT 1000"
-    if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+    if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
         neo4j_query = f"CALL apoc.cypher.runTimeboxed(\"{neo4j_query}\",null,10000) YIELD value RETURN value.n0_0"
     print(neo4j_query)
     session = G.session()#.data()
@@ -744,8 +755,9 @@ def getNodeAndEdgeLabels(graph_db):
     if graph_db == "ROBOKOP":
         link = "bolt://robokopkg.renci.org"
     elif graph_db == "IDKG":
-        #link = "bolt://localhost:7687"
-        link = "neo4j+s://48cfab8c.databases.neo4j.io"
+        link = f"bolt://{os.getenv('IDKG_HOST')}:7687"
+    elif graph_db == "DNT":
+        link = f"bolt://{os.getenv('DNT_HOST')}:7687"
     elif graph_db == "YOBOKOP":
         link = "bolt://yobokop-neo4j.apps.renci.org"
     elif graph_db == "HetioNet":
@@ -756,7 +768,7 @@ def getNodeAndEdgeLabels(graph_db):
         link = "bolt://neo4j.comptox.ai:7687"
     rk_nodes=[]
     #rk_edges=[]
-    if graph_db in ["ROBOKOP","IDKG"]:
+    if graph_db in ["ROBOKOP","IDKG","DNT"]:
         rk_edges=qualified_predicates
     else:
         rk_edges=[]
@@ -764,7 +776,9 @@ def getNodeAndEdgeLabels(graph_db):
         if graph_db == "YOBOKOP":
             G = py2neo.Graph(link, auth=("neo4j", "ncatgamma"))
         elif graph_db == "IDKG":
-            G = py2neo.Graph(link, auth=("neo4j", "b3dyFgWmN-I9l2VS-2vAT6FAUcxd3tgOxJbE8B2rYpI"))
+            G = py2neo.Graph(link, auth=(os.getenv("IDKG_USER"), os.getenv("IDKG_PASSWORD")))
+        elif graph_db == "DNT":
+            G = py2neo.Graph(link, auth=(os.getenv("DNT_USER"), os.getenv("DNT_PASSWORD")))
         else:
             G = py2neo.Graph(link)
     except:
@@ -799,8 +813,9 @@ def checkNodeNameID(graph_db, terms, label):
     if graph_db == "ROBOKOP":
         link = "bolt://robokopkg.renci.org"
     elif graph_db == "IDKG":
-        #link = "bolt://localhost:7687"
-        link = "neo4j+s://48cfab8c.databases.neo4j.io"
+        link = f"bolt://{os.getenv('IDKG_HOST')}:7687"
+    elif graph_db == "DNT":
+        link = f"bolt://{os.getenv('DNT_HOST')}:7687"
     elif graph_db == "YOBOKOP":
         link = "bolt://yobokop-neo4j.apps.renci.org"
     elif graph_db == "HetioNet":
@@ -813,7 +828,9 @@ def checkNodeNameID(graph_db, terms, label):
         if graph_db == "YOBOKOP":
             G = py2neo.Graph(link, auth=("neo4j", "ncatgamma"))
         elif graph_db == "IDKG":
-            G = py2neo.Graph(link, auth=("neo4j", "b3dyFgWmN-I9l2VS-2vAT6FAUcxd3tgOxJbE8B2rYpI"))
+            G = py2neo.Graph(link, auth=(os.getenv("IDKG_USER"), os.getenv("IDKG_PASSWORD")))
+        elif graph_db == "DNT":
+            G = py2neo.Graph(link, auth=(os.getenv("DNT_USER"), os.getenv("DNT_PASSWORD")))
         else:
             G = py2neo.Graph(link)
         
@@ -845,7 +862,7 @@ def checkNodeNameID(graph_db, terms, label):
     
     searched_list = ",".join(f'"{x.lower()}"' for x in terms)
     
-    if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+    if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
         query = f"WITH [{searched_list}] as terms MATCH (n{':'+ Label if Label != 'wildcard' else ''}) WHERE apoc.meta.cypher.type(n.{KGNameIDProps[graph_db][0]}) = 'STRING' AND any(term IN terms WHERE toLower(n.{KGNameIDProps[graph_db][0]}) CONTAINS term OR toLower(apoc.text.join(n.{KGNameIDProps[graph_db][2]}, ',')) CONTAINS term) CALL {'{'}WITH n RETURN apoc.node.degree(n) AS degree{'}'} RETURN n.{KGNameIDProps[graph_db][0]}, n.{KGNameIDProps[graph_db][1]}, n.{KGNameIDProps[graph_db][2]}, degree LIMIT 10000"
     else:
         query = f"MATCH (n{':'+Label if Label != 'wildcard' else ''}) WHERE toLower(n.{KGNameIDProps[graph_db][0]}) IN [{searched_list}] OR toLower(apoc.text.join(n.{KGNameIDProps[graph_db][2]}, ',')) IN [{searched_list}] RETURN n.{KGNameIDProps[graph_db][0]}, n.{KGNameIDProps[graph_db][1]}, n.{KGNameIDProps[graph_db][2]} LIMIT 10000"
@@ -869,7 +886,7 @@ def checkNodeNameID(graph_db, terms, label):
         lower_term = term.lower()
         if lower_term in lower_node_names:
             indices = [i for i,j in enumerate(lower_node_names) if j == lower_term]
-            if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+            if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                 if term in nodes_output['node name']:
                     message+=f"'{term}' found!\nNode IDs:\n{listToString([nodes_output['node id'][index] for index in indices])}\nNode Degrees: {[nodes_output['node degree'][index] for index in indices]}\n\n"
                 else:
@@ -882,7 +899,7 @@ def checkNodeNameID(graph_db, terms, label):
 
         elif lower_term in lower_node_ids:
             indices = [i for i,j in enumerate(lower_node_ids) if j == lower_term]
-            if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+            if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                 #message+=f"'{term}' found!\n"
                 message+=f"'{term}' found!\nNode Names:\n{listToString([nodes_output['node name'][index] for index in indices])}\nNode Degrees: {[nodes_output['node degree'][index] for index in indices]}\n\n"
             else:
@@ -892,7 +909,7 @@ def checkNodeNameID(graph_db, terms, label):
         elif any(lower_term in sublist for sublist in lower_node_eq_ids):
             found_list = [sublist for sublist in lower_node_eq_ids if lower_term in sublist][0]
             indices = [i for i,j in enumerate(lower_node_eq_ids) if j == found_list]
-            if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+            if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                 #message+=f"'{term}' found!\n"
                 message+=f"'{term}' found!\nNode Names:\n{listToString([nodes_output['node name'][index] for index in indices])}\nNode Degrees: {[nodes_output['node degree'][index] for index in indices]}\n\n"
             else:
@@ -900,7 +917,7 @@ def checkNodeNameID(graph_db, terms, label):
                 message+=f"'{term}' found!\nNode Names:\n{listToString([nodes_output['node name'][index] for index in indices])}\n\n"
 
         else:
-            if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
+            if graph_db in ["ROBOKOP","IDKG","DNT","YOBOKOP","ComptoxAI"]:
                 message+=f"'{term}' not found, try instead:\n"
                 for w,x,y,z in zip(nodes_output['node name'],nodes_output['node id'],nodes_output['node eq id'],nodes_output['node degree']):
                     if term.lower() in w.lower():

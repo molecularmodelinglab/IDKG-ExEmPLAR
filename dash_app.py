@@ -30,6 +30,10 @@ import io
 import base64
 import PCA
 import flask
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 #Register pages
 
@@ -56,13 +60,14 @@ colors = {
 kg_dropdown = dcc.Dropdown(
                     id="kg-dropdown",
                     options=[
-                    {'label':"IDKG", 'value':"IDKG"},
                     {'label':"ROBOKOP", 'value':"ROBOKOP"},
+                    {'label':"IDKG", 'value':"IDKG"},
+                    {'label':"DNT", 'value':"DNT"},
                     {'label':"YOBOKOP", 'value':"YOBOKOP"},
                     {'label':"SCENT-KOP", 'value':"SCENT-KOP"},
                     {'label':"HetioNet", 'value':"HetioNet"},
                     {'label':"ComptoxAI", 'value':"ComptoxAI"}],
-                    value="IDKG",
+                    value="ROBOKOP",
                     className='dropdownbox',
                     clearable=False)
 
@@ -743,8 +748,12 @@ def UpdateNodeAndEdgeLabels(graph_db,last_callback_data):
         starter = "biolink:ChemicalEntity"
         intermediate = "biolink:GeneOrGeneProduct"
         ender = "biolink:DiseaseOrPhenotypicFeature"
-        #link = "bolt://localhost:7687"
-        link = "neo4j+s://48cfab8c.databases.neo4j.io"
+        link = f"bolt://{os.getenv('IDKG_HOST')}:7687"
+    elif graph_db == "DNT":
+        starter = "biolink:ChemicalEntity"
+        intermediate = "biolink:GeneOrGeneProduct"
+        ender = "biolink:DiseaseOrPhenotypicFeature"
+        link = f"bolt://{os.getenv('DNT_HOST')}:7687"
     elif graph_db == "YOBOKOP":
         starter = "biolink:ChemicalEntity"
         ender = "biolink:DiseaseOrPhenotypicFeature"
