@@ -187,7 +187,7 @@ def Graphsearch(graph_db,start_nodes,end_nodes,nodes,options,edges,get_metadata,
                 robokop_output.update({f"node{i}: {nodes[p][i]}":[]})
                 if get_metadata == True:
                     robokop_output.update({f"n{i}:MetaData":[]})
-                if graph_db in ["ROBOKOP","YOBOKOP","ComptoxAI"]:
+                if graph_db in ["ROBOKOP","IDKG","YOBOKOP","ComptoxAI"]:
                     robokop_output.update({f"esnd_n{i}_r{i-1}":[]})
                     robokop_output.update({f"esnd_n{i}_r{i}":[]})
                 robokop_output.update({f"edge{i}":[]})
