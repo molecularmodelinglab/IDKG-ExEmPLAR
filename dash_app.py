@@ -733,12 +733,13 @@ def checkToBool(show_edge):
     State("last-callback","data")
 )
 def UpdateNodeAndEdgeLabels(graph_db,last_callback_data):
-    timestamp=datetime.now().timestamp()
-    last_call_time = last_callback_data["timestamp"]
-    delta_time = timestamp-last_call_time
-    print(delta_time)
-    if delta_time < 2:
-        raise dash.exceptions.PreventUpdate
+    # timestamp=datetime.now().timestamp()
+    # last_call_time = last_callback_data["timestamp"]
+    # delta_time = timestamp-last_call_time
+    # print(delta_time)
+    # if delta_time < 2:
+    #     raise dash.exceptions.PreventUpdate
+    intermediate = None
     if graph_db == "ROBOKOP":
         starter = "biolink:ChemicalEntity"
         intermediate = "biolink:Gene"
@@ -746,12 +747,10 @@ def UpdateNodeAndEdgeLabels(graph_db,last_callback_data):
         link = "http://robokopkg.renci.org/browser/"
     elif graph_db == "IDKG":
         starter = "biolink:ChemicalEntity"
-        intermediate = "biolink:GeneOrGeneProduct"
         ender = "biolink:DiseaseOrPhenotypicFeature"
         link = f"bolt://{os.getenv('IDKG_HOST')}:7687"
     elif graph_db == "DNT":
         starter = "biolink:ChemicalEntity"
-        intermediate = "biolink:GeneOrGeneProduct"
         ender = "biolink:DiseaseOrPhenotypicFeature"
         link = f"bolt://{os.getenv('DNT_HOST')}:7687"
     elif graph_db == "YOBOKOP":
@@ -1723,6 +1722,7 @@ if __name__ == '__main__':
 
     app.run() #For local development
     #app.run_server(host='0.0.0.0', port=80,debug=False) #For production
+
 
 
 
